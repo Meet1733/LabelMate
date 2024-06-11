@@ -127,11 +127,12 @@ router.post("/task" , authMiddleware , async (req,res) => {
 //Sign in with a wallet
 //signing a messgae
 router.post('/signin' , async(req,res) => {
-    const hardcodedWalletAddress = "oKA6pV6MTDmmd1cQFKxpbvFrCurHSxM28agomEJyJWY";
+    const {publicKey , signature} = req.body;
+    const message = new TextEncoder().encode("Sign in to LabelMate")
     
     const existingUser = await prismaClient.user.findFirst({
         where:{
-            address: hardcodedWalletAddress
+            address: publicKey
         }
     })
 
@@ -146,7 +147,7 @@ router.post('/signin' , async(req,res) => {
     }else{
         const user = await prismaClient.user.create({
             data:{
-                address: hardcodedWalletAddress
+                address: publicKey
             }
         })
 
