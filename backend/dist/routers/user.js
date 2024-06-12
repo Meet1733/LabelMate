@@ -18,6 +18,8 @@ const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const config_1 = require("../config");
 const middleware_1 = require("../middleware");
 const types_1 = require("../types");
+const tweetnacl_1 = __importDefault(require("tweetnacl"));
+const web3_js_1 = require("@solana/web3.js");
 const DEFALUT_TITLE = "Select the most clickable thumbnail";
 const router = (0, express_1.Router)();
 const prismaClient = new client_1.PrismaClient();
@@ -109,10 +111,12 @@ router.post("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0
 //Sign in with a wallet
 //signing a messgae
 router.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const hardcodedWalletAddress = "oKA6pV6MTDmmd1cQFKxpbvFrCurHSxM28agomEJyJWY";
+    const { publicKey, signature } = req.body;
+    const message = new TextEncoder().encode("Sign in to LabelMate");
+    const result = tweetnacl_1.default.sign.detached.verify(message, new Uint8Array(signature.data), new web3_js_1.PublicKey(publicKey).toBytes());
     const existingUser = yield prismaClient.user.findFirst({
         where: {
-            address: hardcodedWalletAddress
+            address: publicKey
         }
     });
     if (existingUser) {
@@ -126,7 +130,7 @@ router.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function*
     else {
         const user = yield prismaClient.user.create({
             data: {
-                address: hardcodedWalletAddress
+                address: publicKey
             }
         });
         const token = jsonwebtoken_1.default.sign({

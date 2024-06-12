@@ -13,6 +13,10 @@ export const Appbar = () => {
     const {publicKey, signMessage} = useWallet();
 
     async function signAndSend() {
+        if(!publicKey){
+            return;
+        }
+
         const message = new TextEncoder().encode("Sign in to LabelMate")
         const signature = await signMessage?.(message);
         const response = await axios.post(`${BACKEND_URL}/v1/user/signin`, {

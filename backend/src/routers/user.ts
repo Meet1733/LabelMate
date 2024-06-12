@@ -4,6 +4,8 @@ import jwt from "jsonwebtoken";
 import { JWT_SECRET, TOTAL_DECIMALS } from "../config";
 import { authMiddleware } from "../middleware";
 import { createTaskInput } from "../types";
+import nacl from "tweetnacl";
+import { PublicKey } from "@solana/web3.js";
 
 
 const DEFALUT_TITLE = "Select the most clickable thumbnail";
@@ -128,8 +130,14 @@ router.post("/task" , authMiddleware , async (req,res) => {
 //signing a messgae
 router.post('/signin' , async(req,res) => {
     const {publicKey , signature} = req.body;
-    const message = new TextEncoder().encode("Sign in to LabelMate")
-    
+    const message = new TextEncoder().encode("Sign in to LabelMate");
+
+    const result = nacl.sign.detached.verify(
+        message,
+        new Uint8Array(signature.data),
+        new PublicKey(publicKey).toBytes(),
+      );
+
     const existingUser = await prismaClient.user.findFirst({
         where:{
             address: publicKey
