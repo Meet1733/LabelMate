@@ -20,6 +20,9 @@ const middleware_1 = require("../middleware");
 const types_1 = require("../types");
 const tweetnacl_1 = __importDefault(require("tweetnacl"));
 const web3_js_1 = require("@solana/web3.js");
+// import { useConnection } from "@solana/wallet-adapter-react";
+const connection = new web3_js_1.Connection("https://api.devnet.solana.com");
+const PARENT_WALLET_ADDRESS = "5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy";
 const DEFALUT_TITLE = "Select the most clickable thumbnail";
 const router = (0, express_1.Router)();
 const prismaClient = new client_1.PrismaClient();
@@ -75,22 +78,46 @@ router.get('/task', middleware_1.authMiddleware, (req, res) => __awaiter(void 0,
     });
 }));
 router.post("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a, _b, _c, _d, _e, _f;
     // @ts-ignore
     const userId = req.userId;
     //validate inputs from user
     const body = req.body;
     const parseData = types_1.createTaskInput.safeParse(body);
+    const user = yield prismaClient.user.findFirst({
+        where: {
+            id: userId
+        }
+    });
     if (!parseData.success) {
         return res.status(411).json({
             message: "You've sent the wrong inputs"
         });
     }
     //parse the signature here to ensure the person has paid $50
+    const transaction = yield connection.getTransaction(parseData.data.signature, {
+        maxSupportedTransactionVersion: 1
+    });
+    if (((_b = (_a = transaction === null || transaction === void 0 ? void 0 : transaction.meta) === null || _a === void 0 ? void 0 : _a.postBalances[1]) !== null && _b !== void 0 ? _b : 0) - ((_d = (_c = transaction === null || transaction === void 0 ? void 0 : transaction.meta) === null || _c === void 0 ? void 0 : _c.preBalances[1]) !== null && _d !== void 0 ? _d : 0) !== 100000000) {
+        return res.status(411).json({
+            message: "Transaction signature/amount incorrect"
+        });
+    }
+    if (((_e = transaction === null || transaction === void 0 ? void 0 : transaction.transaction.message.getAccountKeys().get(1)) === null || _e === void 0 ? void 0 : _e.toString()) !== PARENT_WALLET_ADDRESS) {
+        return res.status(411).json({
+            message: "Transaction sent to wrong address"
+        });
+    }
+    if (((_f = transaction === null || transaction === void 0 ? void 0 : transaction.transaction.message.getAccountKeys().get(0)) === null || _f === void 0 ? void 0 : _f.toString()) !== (user === null || user === void 0 ? void 0 : user.address)) {
+        return res.status(411).json({
+            message: "Transaction sent to wrong address"
+        });
+    }
     let response = yield prismaClient.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
-        var _a;
+        var _g;
         const response = yield tx.task.create({
             data: {
-                title: (_a = parseData.data.title) !== null && _a !== void 0 ? _a : DEFALUT_TITLE,
+                title: (_g = parseData.data.title) !== null && _g !== void 0 ? _g : DEFALUT_TITLE,
                 amount: 1 * config_1.TOTAL_DECIMALS,
                 signature: parseData.data.signature,
                 user_id: userId,

@@ -5,8 +5,12 @@ import { JWT_SECRET, TOTAL_DECIMALS } from "../config";
 import { authMiddleware } from "../middleware";
 import { createTaskInput } from "../types";
 import nacl from "tweetnacl";
-import { PublicKey } from "@solana/web3.js";
+import { PublicKey, Connection} from "@solana/web3.js";
+// import { useConnection } from "@solana/wallet-adapter-react";
 
+const connection = new Connection("https://api.devnet.solana.com");
+
+const PARENT_WALLET_ADDRESS = "5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy"; 
 
 const DEFALUT_TITLE = "Select the most clickable thumbnail";
 
@@ -93,13 +97,40 @@ router.post("/task" , authMiddleware , async (req,res) => {
 
     const parseData = createTaskInput.safeParse(body);
 
+    const user = await prismaClient.user.findFirst({
+        where: {
+            id: userId
+        }
+    })
+
     if(!parseData.success){
         return res.status(411).json({
             message: "You've sent the wrong inputs"
         })
     }
-    
+
     //parse the signature here to ensure the person has paid $50
+    const transaction = await connection.getTransaction(parseData.data.signature , {
+        maxSupportedTransactionVersion: 1
+    });
+
+    if((transaction?.meta?.postBalances[1] ?? 0) - (transaction?.meta?.preBalances[1] ?? 0) !== 100000000) {
+        return res.status(411).json({
+            message: "Transaction signature/amount incorrect"
+        })
+    }
+
+    if(transaction?.transaction.message.getAccountKeys().get(1)?.toString() !== PARENT_WALLET_ADDRESS) {
+        return res.status(411).json({
+            message: "Transaction sent to wrong address"
+        })
+    }
+
+    if (transaction?.transaction.message.getAccountKeys().get(0)?.toString() !== user?.address) {
+        return res.status(411).json({
+            message: "Transaction sent to wrong address"
+        })
+    }
 
     let response = await prismaClient.$transaction(async tx => {
         
@@ -136,7 +167,13 @@ router.post('/signin' , async(req,res) => {
         message,
         new Uint8Array(signature.data),
         new PublicKey(publicKey).toBytes(),
-      );
+    );
+
+    if(!result){
+        return res.status(411).json({
+            message: "Incorrect signature"
+        })
+    }
 
     const existingUser = await prismaClient.user.findFirst({
         where:{
