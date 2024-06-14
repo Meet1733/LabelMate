@@ -141,6 +141,11 @@ router.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function*
     const { publicKey, signature } = req.body;
     const message = new TextEncoder().encode("Sign in to LabelMate");
     const result = tweetnacl_1.default.sign.detached.verify(message, new Uint8Array(signature.data), new web3_js_1.PublicKey(publicKey).toBytes());
+    if (!result) {
+        return res.status(411).json({
+            message: "Incorrect signature"
+        });
+    }
     const existingUser = yield prismaClient.user.findFirst({
         where: {
             address: publicKey

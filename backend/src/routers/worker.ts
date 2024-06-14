@@ -1,10 +1,16 @@
 import { PrismaClient } from "@prisma/client";
-import jwt from "jsonwebtoken";
-import { WORKER_JWT_SECRET } from "../config";
+import jwt, { sign } from "jsonwebtoken";
+import { TOTAL_DECIMALS, WORKER_JWT_SECRET } from "../config";
 import { Router } from "express";
 import { workerMiddleware } from "../middleware";
 import { getNextTask } from "../db";
 import { createSubmissionInput } from "../types";
+import nacl from "tweetnacl";
+import { Connection, Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
+import { decode } from "bs58";
+import { privateKey } from "../privateKey";
+
+const connection = new Connection("https://api.devnet.solana.com");
 
 const TOTAL_SUBMISSION = 100;
 
@@ -32,15 +38,36 @@ router.post("/payout" , workerMiddleware , async (req,res) => {
 
     if(!worker){
         return res.status(403).json({
-            message: "User not fpind"
+            message: "User not found"
         })
     }
-    const address = worker.address
 
-    const txnId = "0x123455666";
+    const transaction = new Transaction().add(
+        SystemProgram.transfer({
+            fromPubkey: new PublicKey("5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy"),
+            toPubkey: new PublicKey(worker.address),
+            lamports: 1000_000_000 * worker.pending_amount / TOTAL_DECIMALS, //1 SOL = 1e9 Lamports
+        })
+    );
 
+    const keypair = Keypair.fromSecretKey(decode(privateKey));
 
-    //Should Add a lock here
+    let signature = "";
+    try{
+        signature = await sendAndConfirmTransaction(
+            connection,
+            transaction,
+            [keypair]
+        )
+    } catch(e) {
+        return res.json({
+            message: "Transaction failed"
+        })
+    }
+
+    console.log(signature)
+
+    //Should Add a lock here to avoid double spending
     await prismaClient.$transaction(async tx => {
         await tx.worker.update({
             where: {
@@ -55,13 +82,13 @@ router.post("/payout" , workerMiddleware , async (req,res) => {
                 }
             }
         })
-
+        
         await tx.payouts.create({
             data: {
                 user_id: Number(userId),
                 amount: worker.pending_amount,
                 status: "Processing",
-                signature: txnId
+                signature: signature
             }
         })
     })
@@ -160,11 +187,23 @@ router.get("/nextTask" ,workerMiddleware ,async (req,res) => {
 })
 
 router.post('/signin' , async (req,res) => {
-    const hardcodedWalletAddress = "oKA6pV6MTDmmd1cQFKxpbvFrCurHSxM28agomEJMeettcdncd";
+    const {publicKey , signature} = req.body;
+    const message = new TextEncoder().encode("Sign in to LabelMate as a worker");
+    const result = nacl.sign.detached.verify(
+        message,
+        new Uint8Array(signature.data),
+        new PublicKey(publicKey).toBytes(),
+    );
+
+    if(!result){
+        return res.status(411).json({
+            message: "Incorrect signature"
+        })
+    }
     
     const existingUser = await prismaClient.worker.findFirst({
         where:{
-            address: hardcodedWalletAddress
+            address: publicKey
         }
     })
 
@@ -174,12 +213,13 @@ router.post('/signin' , async (req,res) => {
         },WORKER_JWT_SECRET)
 
         res.json({
-            token
+            token,
+            amount: existingUser.pending_amount 
         })
     }else{
         const user = await prismaClient.worker.create({
             data:{
-                address: hardcodedWalletAddress,
+                address: publicKey,
                 pending_amount: 0,
                 locked_amount: 0
             }
@@ -190,7 +230,8 @@ router.post('/signin' , async (req,res) => {
         },WORKER_JWT_SECRET)
 
         res.json({
-            token
+            token,
+            amount: 0
         })
     }
 });

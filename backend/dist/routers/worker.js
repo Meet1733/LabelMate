@@ -19,6 +19,11 @@ const express_1 = require("express");
 const middleware_1 = require("../middleware");
 const db_1 = require("../db");
 const types_1 = require("../types");
+const tweetnacl_1 = __importDefault(require("tweetnacl"));
+const web3_js_1 = require("@solana/web3.js");
+const bs58_1 = require("bs58");
+const privateKey_1 = require("../privateKey");
+const connection = new web3_js_1.Connection("https://api.devnet.solana.com");
 const TOTAL_SUBMISSION = 100;
 const router = (0, express_1.Router)();
 const prismaClient = new client_1.PrismaClient();
@@ -38,12 +43,26 @@ router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(vo
     });
     if (!worker) {
         return res.status(403).json({
-            message: "User not fpind"
+            message: "User not found"
         });
     }
-    const address = worker.address;
-    const txnId = "0x123455666";
-    //Should Add a lock here
+    const transaction = new web3_js_1.Transaction().add(web3_js_1.SystemProgram.transfer({
+        fromPubkey: new web3_js_1.PublicKey("5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy"),
+        toPubkey: new web3_js_1.PublicKey(worker.address),
+        lamports: 1000000000 * worker.pending_amount / config_1.TOTAL_DECIMALS, //1 SOL = 1e9 Lamports
+    }));
+    const keypair = web3_js_1.Keypair.fromSecretKey((0, bs58_1.decode)(privateKey_1.privateKey));
+    let signature = "";
+    try {
+        signature = yield (0, web3_js_1.sendAndConfirmTransaction)(connection, transaction, [keypair]);
+    }
+    catch (e) {
+        return res.json({
+            message: "Transaction failed"
+        });
+    }
+    console.log(signature);
+    //Should Add a lock here to avoid double spending
     yield prismaClient.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
         yield tx.worker.update({
             where: {
@@ -63,7 +82,7 @@ router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(vo
                 user_id: Number(userId),
                 amount: worker.pending_amount,
                 status: "Processing",
-                signature: txnId
+                signature: signature
             }
         });
     }));
@@ -148,10 +167,17 @@ router.get("/nextTask", middleware_1.workerMiddleware, (req, res) => __awaiter(v
     }
 }));
 router.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const hardcodedWalletAddress = "oKA6pV6MTDmmd1cQFKxpbvFrCurHSxM28agomEJMeettcdncd";
+    const { publicKey, signature } = req.body;
+    const message = new TextEncoder().encode("Sign in to LabelMate as a worker");
+    const result = tweetnacl_1.default.sign.detached.verify(message, new Uint8Array(signature.data), new web3_js_1.PublicKey(publicKey).toBytes());
+    if (!result) {
+        return res.status(411).json({
+            message: "Incorrect signature"
+        });
+    }
     const existingUser = yield prismaClient.worker.findFirst({
         where: {
-            address: hardcodedWalletAddress
+            address: publicKey
         }
     });
     if (existingUser) {
@@ -159,13 +185,14 @@ router.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function*
             userId: existingUser.id
         }, config_1.WORKER_JWT_SECRET);
         res.json({
-            token
+            token,
+            amount: existingUser.pending_amount
         });
     }
     else {
         const user = yield prismaClient.worker.create({
             data: {
-                address: hardcodedWalletAddress,
+                address: publicKey,
                 pending_amount: 0,
                 locked_amount: 0
             }
@@ -174,7 +201,8 @@ router.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function*
             userId: user.id
         }, config_1.WORKER_JWT_SECRET);
         res.json({
-            token
+            token,
+            amount: 0
         });
     }
 }));
