@@ -65,8 +65,6 @@ router.post("/payout" , workerMiddleware , async (req,res) => {
         })
     }
 
-    console.log(signature)
-
     //Should Add a lock here to avoid double spending
     await prismaClient.$transaction(async tx => {
         await tx.worker.update({
@@ -85,14 +83,13 @@ router.post("/payout" , workerMiddleware , async (req,res) => {
         
         await tx.payouts.create({
             data: {
-                user_id: Number(userId),
+                worker_id: Number(userId),
                 amount: worker.pending_amount,
                 status: "Processing",
                 signature: signature
             }
         })
     })
-
 
     //send the txn to solana blockchain
     res.json({

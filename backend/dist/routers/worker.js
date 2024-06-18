@@ -77,9 +77,10 @@ router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(vo
                 }
             }
         });
+        //Error is in below tx
         yield tx.payouts.create({
             data: {
-                user_id: Number(userId),
+                worker_id: Number(userId),
                 amount: worker.pending_amount,
                 status: "Processing",
                 signature: signature
