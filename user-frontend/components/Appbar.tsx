@@ -2,18 +2,20 @@
 
 import { BACKEND_URL } from '@/util';
 import { useWallet } from '@solana/wallet-adapter-react';
-import {
-    WalletDisconnectButton,
-    WalletMultiButton
-} from '@solana/wallet-adapter-react-ui';
 import axios from 'axios';
 import { useEffect } from 'react';
+import dynamic from 'next/dynamic';
+const WalletButton = dynamic(() => import("./WalletButton"), { ssr: false });
 
 export const Appbar = () => {
     const {publicKey, signMessage} = useWallet();
 
     async function signAndSend() {
-        if(!publicKey){
+        if(!publicKey || !signMessage || !window){
+            return;
+        }
+
+        if (window.localStorage.getItem("token")) {
             return;
         }
 
@@ -36,7 +38,7 @@ export const Appbar = () => {
         LabelMate
     </div>
     <div className="text-xl pr-4">
-        {publicKey ? <WalletDisconnectButton /> : <WalletMultiButton />}
+        <WalletButton publicKey={publicKey?.toString()}></WalletButton>
     </div>
 </div>
 }

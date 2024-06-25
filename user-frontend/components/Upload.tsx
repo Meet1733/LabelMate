@@ -14,25 +14,39 @@ export const Upload = () => {
     const [txSignature , setTxSignature] = useState("");
     const {publicKey , sendTransaction} = useWallet();
     const {connection} = useConnection();
+    const [loading, setLoading] = useState(false);
+
     const router = useRouter();
 
     async function onSubmit() {
-        const response = await axios.post(`${BACKEND_URL}/v1/user/task` , {
-            options: images.map(image => ({
-                imageUrl: image,
-            })),
-            title,
-            signature: txSignature
-        }, {
-            headers: {
-                "Authorization": localStorage.getItem("token")
-            }
-        })
+        if(!txSignature){
+            console.log("Signature not found");
+            return;
+        }
+        setLoading(true);
 
-        router.push(`/task/${response.data.id}`)
+        try{
+            const response = await axios.post(`${BACKEND_URL}/v1/user/task` , {
+                options: images.map(image => ({
+                    imageUrl: image,
+                })),
+                title,
+                signature: txSignature
+            }, {
+                headers: {
+                    "Authorization": localStorage.getItem("token")
+                }
+            })
+    
+            router.push(`/task/${response.data.id}`)
+        }catch(e){
+            console.log(e);
+        }
+        setLoading(false);
     }
 
     async function makePayment() {
+        setLoading(true);
         const transaction = new Transaction().add(
             SystemProgram.transfer({
                 fromPubkey: publicKey!,
@@ -40,16 +54,21 @@ export const Upload = () => {
                 lamports: 100000000, //0.1 SOL
             })
         );
-
-        const {
-            context: {slot: minContextSlot },
-            value: {blockhash, lastValidBlockHeight }
-        } = await connection.getLatestBlockhashAndContext();
-
-        const signature = await sendTransaction(transaction , connection, {minContextSlot});
-
-        await connection.confirmTransaction({ blockhash , lastValidBlockHeight , signature});
-        setTxSignature(signature);
+        
+        try{
+            const {
+                context: {slot: minContextSlot },
+                value: {blockhash, lastValidBlockHeight }
+            } = await connection.getLatestBlockhashAndContext();
+    
+            const signature = await sendTransaction(transaction , connection, {minContextSlot});
+    
+            await connection.confirmTransaction({ blockhash , lastValidBlockHeight , signature});
+            setTxSignature(signature);
+        }catch(e){
+            console.log(e);
+        }
+        setLoading(false);
     }
 
     return <div className="flex justify-center">
@@ -78,9 +97,32 @@ export const Upload = () => {
     </div>
 
     <div className="flex justify-center">
-        <button onClick={txSignature ?  onSubmit : makePayment} type="button" className="mt-4 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">
-            {txSignature ? "Submit Task" : "Pay 0.1 SOL"}
-        </button>
+        {loading ? (
+            <button
+              disabled={true}
+              type="button"
+              className="mt-4 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+            >
+              {"Loading..."}
+            </button>
+          ) : txSignature ? (
+            <button
+              onClick={onSubmit}
+              type="button"
+              disabled={loading}
+              className="mt-4 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+            >
+              {loading ? "Sumbiting..." : "Submit Task"}
+            </button>
+          ) : (
+            <button
+              onClick={makePayment}
+              type="button"
+              className="mt-4 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-full  text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+            >
+              {"Submit Task for 0.1 sol"}
+            </button>
+          )}
     </div>
     
   </div>

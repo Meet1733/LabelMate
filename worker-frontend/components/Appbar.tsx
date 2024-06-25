@@ -7,7 +7,6 @@ import {
     WalletMultiButton
 } from '@solana/wallet-adapter-react-ui';
 import axios from 'axios';
-import { headers } from 'next/headers';
 import { useEffect, useState } from 'react';
 
 export const Appbar = () => {
@@ -28,8 +27,6 @@ export const Appbar = () => {
 
         localStorage.setItem("token" , response.data.token);
         setBalance(response.data.amount/ TOTAL_DECIMALS)
-
-        
     }
 
     useEffect(() => {

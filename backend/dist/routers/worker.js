@@ -61,7 +61,6 @@ router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(vo
             message: "Transaction failed"
         });
     }
-    console.log(signature);
     //Should Add a lock here to avoid double spending
     yield prismaClient.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
         yield tx.worker.update({
@@ -77,7 +76,6 @@ router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(vo
                 }
             }
         });
-        //Error is in below tx
         yield tx.payouts.create({
             data: {
                 worker_id: Number(userId),

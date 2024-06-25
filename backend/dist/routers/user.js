@@ -20,7 +20,6 @@ const middleware_1 = require("../middleware");
 const types_1 = require("../types");
 const tweetnacl_1 = __importDefault(require("tweetnacl"));
 const web3_js_1 = require("@solana/web3.js");
-// import { useConnection } from "@solana/wallet-adapter-react";
 const connection = new web3_js_1.Connection("https://api.devnet.solana.com");
 const PARENT_WALLET_ADDRESS = "5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy";
 const DEFALUT_TITLE = "Select the most clickable thumbnail";
@@ -98,6 +97,9 @@ router.post("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0
     const transaction = yield connection.getTransaction(parseData.data.signature, {
         maxSupportedTransactionVersion: 1
     });
+    if (!transaction || !transaction.meta) {
+        return res.status(404).json({ message: "Transaction not found." });
+    }
     if (((_b = (_a = transaction === null || transaction === void 0 ? void 0 : transaction.meta) === null || _a === void 0 ? void 0 : _a.postBalances[1]) !== null && _b !== void 0 ? _b : 0) - ((_d = (_c = transaction === null || transaction === void 0 ? void 0 : transaction.meta) === null || _c === void 0 ? void 0 : _c.preBalances[1]) !== null && _d !== void 0 ? _d : 0) !== 100000000) {
         return res.status(411).json({
             message: "Transaction signature/amount incorrect"

@@ -6,7 +6,6 @@ import { authMiddleware } from "../middleware";
 import { createTaskInput } from "../types";
 import nacl from "tweetnacl";
 import { PublicKey, Connection} from "@solana/web3.js";
-// import { useConnection } from "@solana/wallet-adapter-react";
 
 const connection = new Connection("https://api.devnet.solana.com");
 
@@ -113,6 +112,10 @@ router.post("/task" , authMiddleware , async (req,res) => {
     const transaction = await connection.getTransaction(parseData.data.signature , {
         maxSupportedTransactionVersion: 1
     });
+
+    if (!transaction || !transaction.meta) {
+        return res.status(404).json({ message: "Transaction not found." });
+    }
 
     if((transaction?.meta?.postBalances[1] ?? 0) - (transaction?.meta?.preBalances[1] ?? 0) !== 100000000) {
         return res.status(411).json({
