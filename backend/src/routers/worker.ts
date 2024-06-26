@@ -170,17 +170,60 @@ router.get("/nextTask" ,workerMiddleware ,async (req,res) => {
     //@ts-ignore
     const userId: string = req.userId;
 
-    const task = await getNextTask(Number(userId));
+    try{
+        const task = await getNextTask(Number(userId));
 
-    if(!task){
-        res.status(411).json({
-            message: "No more tasks left for you to review"
-        })
-    }else{
-        res.json({
-            task
+        if(!task){
+            res.status(411).json({
+                message: "No more tasks left for you to review"
+            })
+        }else{
+            res.json({
+                task
+            })
+        }
+    }catch(e){
+        return res.status(500).json({
+            message: "INTERNAL_SERVER_ERROR",
+            description: (e as Error).message,
         })
     }
+})
+
+router.get('/me' , workerMiddleware , async(req,res) => {
+    //@ts-ignore
+    const workerId = req.userId;
+
+    const existingUser = await prismaClient.worker.findFirst({
+        where: {
+            id: Number(workerId),
+        }
+    })
+
+    if(!existingUser){
+        return res.status(404).json({
+            message: "Worker not found"
+        })
+    }
+
+    const payouts = await prismaClient.payouts.findMany({
+        where: {
+            worker_id: Number(workerId),
+        }
+    });
+
+    let totalEarnings = 0;
+
+    payouts.forEach((payout) => {
+        totalEarnings += payout.amount;
+    })
+
+    res.json({
+        ...existingUser,
+        locked: existingUser.locked_amount / TOTAL_DECIMALS,
+        amount: existingUser.pending_amount/TOTAL_DECIMALS,
+        earning: totalEarnings/TOTAL_DECIMALS,
+    })
 })
 
 router.post('/signin' , async (req,res) => {

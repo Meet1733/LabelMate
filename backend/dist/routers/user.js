@@ -31,11 +31,50 @@ prismaClient.$transaction((prisma) => __awaiter(void 0, void 0, void 0, function
     maxWait: 5000, // default: 2000
     timeout: 10000, // default: 5000
 });
+router.get('/task/all', middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    // @ts-ignore
+    const userId = req.userId;
+    const tasks = yield prismaClient.task.findMany({
+        where: {
+            user_id: Number(userId)
+        },
+        include: { options: true, submissions: {
+                include: { Option: true }
+            } },
+    });
+    const tasksResult = [];
+    tasks.forEach((task) => {
+        var _a;
+        const taskOptions = {};
+        task.options.forEach((option) => {
+            var _a;
+            taskOptions[option.id] = {
+                count: 0,
+                imageUrl: (_a = option.image_url) !== null && _a !== void 0 ? _a : "",
+            };
+        });
+        const filteredTask = {
+            taskId: task.id,
+            done: task.done,
+            signature: task.signature,
+            title: (_a = task.title) !== null && _a !== void 0 ? _a : "",
+            options: taskOptions,
+        };
+        tasksResult.push(filteredTask),
+            task.submissions.forEach((s) => {
+                filteredTask.options[s.option_id].count++;
+            });
+    });
+    res.status(200).json(tasksResult);
+}));
 router.get('/task', middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     // @ts-ignore
     const taskId = req.query.taskId;
     //@ts-ignore
     const userId = req.userId;
+    if (!taskId || !userId) {
+        return res.status(411).json({ message: "Task Id is missing" });
+    }
     const taskDetails = yield prismaClient.task.findFirst({
         where: {
             user_id: Number(userId),
@@ -75,6 +114,19 @@ router.get('/task', middleware_1.authMiddleware, (req, res) => __awaiter(void 0,
         result,
         taskDetails
     });
+}));
+router.get("/me", middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    // @ts-ignore
+    const userId = req.userId;
+    const user = yield prismaClient.user.findFirst({
+        where: {
+            id: Number(userId)
+        }
+    });
+    if (!user) {
+        return res.json({ message: "User does not exist" });
+    }
+    return res.json(user);
 }));
 router.post("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b, _c, _d, _e, _f;

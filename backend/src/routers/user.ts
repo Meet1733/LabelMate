@@ -26,6 +26,67 @@ prismaClient.$transaction(
     }
 )
 
+router.get('/task/all' , authMiddleware , async(req,res) => {
+    // @ts-ignore
+    const userId: string = req.userId;
+    
+    const tasks = await prismaClient.task.findMany({
+        where: {
+            user_id: Number(userId)
+        },
+        include: {options: true, submissions: {
+            
+            include:{ Option: true } }},
+    })
+    
+    const tasksResult: {
+        taskId: number;
+        title: string;
+        signature: string;
+        done: boolean;
+        options: Record<
+            string,
+            {
+                count: number;
+                imageUrl: string;
+            }
+        >;
+    }[] = [];
+
+    tasks.forEach((task) => {
+        const taskOptions: Record <
+            string,
+            {
+                count: number;
+                imageUrl: string;
+            }
+        > = {};
+
+
+        task.options.forEach((option) => {
+            taskOptions[option.id] = {
+                count: 0,
+                imageUrl: option.image_url ?? "",
+            }
+        });
+
+        const filteredTask = {
+            taskId: task.id,
+            done: task.done,
+            signature: task.signature,
+            title: task.title ?? "",
+            options: taskOptions,
+        };
+
+        tasksResult.push(filteredTask),
+
+        task.submissions.forEach((s) =>{
+            filteredTask.options[s.option_id].count++;
+        });
+    });
+
+    res.status(200).json(tasksResult);
+})
 
 router.get('/task' , authMiddleware ,  async (req,res) => {
     // @ts-ignore
@@ -33,6 +94,10 @@ router.get('/task' , authMiddleware ,  async (req,res) => {
 
     //@ts-ignore
     const userId: string = req.userId;
+
+    if (!taskId || !userId) {
+        return res.status(411).json({ message: "Task Id is missing" });
+    }
 
     const taskDetails = await prismaClient.task.findFirst({
         where:{
@@ -84,6 +149,24 @@ router.get('/task' , authMiddleware ,  async (req,res) => {
         result,
         taskDetails
      })
+})
+
+router.get("/me" , authMiddleware , async(req,res) => {
+    // @ts-ignore
+    const userId = req.userId; 
+
+    const user = await prismaClient.user.findFirst({
+        where: {
+            id: Number(userId)
+        }
+    })
+
+    if(!user) {
+        return res.json({message: "User does not exist"});
+    }
+
+    return res.json(user);
+
 })
 
 router.post("/task" , authMiddleware , async (req,res) => {

@@ -6,13 +6,17 @@ import axios from "axios";
 import { useEffect, useState } from "react"
 
 async function getTaskDetails(taskId: string){
-    const response = await axios.get(`${BACKEND_URL}/v1/user/task?taskId=${taskId}` , {
-        headers: {
-            "Authorization": localStorage.getItem("token")
-        }
-    })
-
-    return response.data
+    try{
+        const response = await axios.get(`${BACKEND_URL}/v1/user/task?taskId=${taskId}` , {
+            headers: {
+                "Authorization": localStorage.getItem("token")
+            }
+        })
+    
+        return response.data;
+    }catch(e){
+        console.log(e);
+    }
 }
 
 export default function Page({params: {

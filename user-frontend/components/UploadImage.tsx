@@ -46,7 +46,7 @@ export function UploadImage({onImageAdded , image}: {
     }
 
     if(image){
-        return <img className={"p-2 w-96 rounded"} src={image}/>
+        return <img className={"p-2 rounded w-[20rem] h-[15rem]"} src={image}/>
     }
 
     return <div>

@@ -153,17 +153,49 @@ router.post("/submission", middleware_1.workerMiddleware, (req, res) => __awaite
 router.get("/nextTask", middleware_1.workerMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //@ts-ignore
     const userId = req.userId;
-    const task = yield (0, db_1.getNextTask)(Number(userId));
-    if (!task) {
-        res.status(411).json({
-            message: "No more tasks left for you to review"
+    try {
+        const task = yield (0, db_1.getNextTask)(Number(userId));
+        if (!task) {
+            res.status(411).json({
+                message: "No more tasks left for you to review"
+            });
+        }
+        else {
+            res.json({
+                task
+            });
+        }
+    }
+    catch (e) {
+        return res.status(500).json({
+            message: "INTERNAL_SERVER_ERROR",
+            description: e.message,
         });
     }
-    else {
-        res.json({
-            task
+}));
+router.get('/me', middleware_1.workerMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const workerId = req.userId;
+    const existingUser = yield prismaClient.worker.findFirst({
+        where: {
+            id: Number(workerId),
+        }
+    });
+    if (!existingUser) {
+        return res.status(404).json({
+            message: "Worker not found"
         });
     }
+    const payouts = yield prismaClient.payouts.findMany({
+        where: {
+            worker_id: Number(workerId),
+        }
+    });
+    let totalEarnings = 0;
+    payouts.forEach((payout) => {
+        totalEarnings += payout.amount;
+    });
+    res.json(Object.assign(Object.assign({}, existingUser), { locked: existingUser.locked_amount / config_1.TOTAL_DECIMALS, amount: existingUser.pending_amount / config_1.TOTAL_DECIMALS, earning: totalEarnings / config_1.TOTAL_DECIMALS }));
 }));
 router.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { publicKey, signature } = req.body;
