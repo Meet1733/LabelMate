@@ -2,55 +2,110 @@
 
 import { BACKEND_URL, TOTAL_DECIMALS } from '@/util';
 import { useWallet } from '@solana/wallet-adapter-react';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import dynamic from 'next/dynamic';
-import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useEffect, useMemo, useState } from 'react';
+import { ToastLTSBalance } from './Balance';
+import { toast } from 'sonner';
 const WalletButton = dynamic(() => import("./WalletButton"), { ssr: false });
 
 export const Appbar = () => {
-    const {publicKey, signMessage} = useWallet();
-    const [balance , setBalance] = useState(0);
 
-    async function signAndSend() {
-        if(!publicKey || !signMessage || !window){
-            return;
-        }
+    const [loading , setLoading] = useState(false);
 
-        if (window.localStorage.getItem("token")) {
-            return;
-        }
+    const {publicKey} = useWallet();
 
-        const message = new TextEncoder().encode("Sign in to LabelMate as a worker")
-        const signature = await signMessage?.(message);
-        const response = await axios.post(`${BACKEND_URL}/v1/worker/signin`, {
-            signature,
-            publicKey: publicKey?.toString()
-        });
+    const pubKey = useMemo(() => {
+        const walletAddress = publicKey?.toString();
 
-        localStorage.setItem("token" , response.data.token);
-        setBalance(response.data.amount/ TOTAL_DECIMALS)
-    }
+        return walletAddress?.slice(0, 4) + ".." + walletAddress?.slice(-4);
+    } , [publicKey]);
 
-    useEffect(() => {
-        signAndSend()
-    }, [publicKey])
+    // async function signAndSend() {
+    //     if(!publicKey || !signMessage || !window){
+    //         return;
+    //     }
 
-    return <div className="flex justify-between border-b pb-2 pt-2 items-center">
-    <div className="text-2xl pl-4 flex justify-center">
-        LabelMate Worker
+    //     if (window.localStorage.getItem("token")) {
+    //         return;
+    //     }
+
+    //     const message = new TextEncoder().encode("Sign in to LabelMate as a worker")
+    //     const signature = await signMessage?.(message);
+    //     const response = await axios.post(`${BACKEND_URL}/v1/worker/signin`, {
+    //         signature,
+    //         publicKey: publicKey?.toString()
+    //     });
+
+    //     localStorage.setItem("token" , response.data.token);
+    //     setBalance(response.data.amount/ TOTAL_DECIMALS)
+    // }
+
+    // useEffect(() => {
+    //     signAndSend()
+    // }, [publicKey])
+
+    return(<div className="flex justify-between border-b pb-2 pt-2">
+    <div className="text-2xl pl-4 flex justify-center items-center pt-2">
+        {/* LabelMate Worker */}
+        <Link href={"/"}>LabelMate Worker</Link>
     </div>
-    <div className="text-xl pr-4 flex items-center">
-        <button onClick={() => {
-            axios.post(`${BACKEND_URL}/v1/worker/payout` ,{
-                
-            }, {
-                headers: {
-                    "Authorization": localStorage.getItem("token")
+
+    <div className="text-xl pr-4 flex">
+        <button
+          onClick={async () => {
+            await ToastLTSBalance();
+          }}
+          className="m-2 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+        >
+          Check Balance
+        </button>
+
+    {loading ? (
+        <button
+        disabled={loading}
+        className="m-2 mr-4 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+        >
+        Locking SOL...
+      </button>
+    ) : (
+        <button
+          disabled={loading}
+          onClick={async () => {
+            setLoading(true);
+            const response = await axios.post(`${BACKEND_URL}/v1/worker/payout`,
+                {},
+                {
+                  headers: {
+                    Authorization: localStorage.getItem("token"),
+                  },
                 }
-            })
-        }} 
-        className="m-2 mr-4 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">Pay me out ({balance}) SOL</button>
-        <WalletButton publicKey={publicKey?.toString()}></WalletButton>
+              ).catch((err) => {
+                const data = (err as AxiosError).response?.data;
+                toast((data as {message: string}).message);
+                console.log(err);
+              });
+
+              if (response) {
+                toast.success("Your payout is processing...", {
+                  description: response.data.message,
+                });
+                console.log(response.data);
+              }
+              setLoading(false);
+            }}
+
+            className="m-2 mr-4 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"
+        >
+            Pay me out
+        </button>
+    )}
+    <div className="m-2 text-white cursor-default bg-gray-800  focus:outline-none focus:ring-1 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 dark:bg-gray-800  dark:focus:ring-gray-700 dark:border-gray-700">
+        {pubKey}
     </div>
-</div>
-}
+        <WalletButton></WalletButton>
+        </div>
+    </div>
+    );
+};

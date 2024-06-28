@@ -22,7 +22,6 @@ export const NextTask = () =>{
     const [submitting , setSubmitting] = useState(false);
 
     useEffect(() => {
-        setLoading(true);
         axios.get(`${BACKEND_URL}/v1/worker/nextTask` , {
             headers: {
                 "Authorization": localStorage.getItem('token')
@@ -30,12 +29,11 @@ export const NextTask = () =>{
         })
             .then(res => {
                 setCurrentTask(res.data.task)
-                setLoading(false);
             }) 
             .catch(e => {
                 setCurrentTask(null)
-                setLoading(false)
             })
+        setLoading(false);
     },[])
 
     if(loading){
@@ -57,7 +55,7 @@ export const NextTask = () =>{
     return <div>
         <div className="text-2xl pt-20 flex justify-center">
             {currentTask.title} {currentTask.id}
-            {submitting && "Submitting..."}
+            <div className="pl-4">{submitting && "Submitting..."}</div>
         </div>
 
         <div className="flex justify-center pt-8">
