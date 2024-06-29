@@ -7,12 +7,20 @@ import { BACKEND_URL } from "@/util";
 import { UploadImage } from "./UploadImage";
 import {PublicKey, SystemProgram , Transaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { WalletAdapterProps } from "@solana/wallet-adapter-base";
+import { toast } from "sonner";
 
-export const Upload = () => {
+export const Upload = ({
+    publicKey,
+    sendTransaction,
+}: {
+    publicKey: PublicKey | null;
+    sendTransaction: WalletAdapterProps["sendTransaction"];
+}) => {
     const [images, setImages] = useState<string[]>([]);
-    const [title, setTitle] = useState("");
+    const [title, setTitle] = useState<string | null>(null);
     const [txSignature , setTxSignature] = useState("");
-    const {publicKey , sendTransaction} = useWallet();
+    // const {publicKey , sendTransaction} = useWallet();
     const {connection} = useConnection();
     const [loading, setLoading] = useState(false);
 
@@ -24,6 +32,7 @@ export const Upload = () => {
             return;
         }
         setLoading(true);
+        const tl = toast.loading("Submiting task to workers");
 
         try{
             const response = await axios.post(`${BACKEND_URL}/v1/user/task` , {
@@ -37,9 +46,14 @@ export const Upload = () => {
                     "Authorization": localStorage.getItem("token")
                 }
             })
-    
+            
+            toast.dismiss(tl);
+            toast.success("Successfully submitted the task", { description: `TASK ID: ${response.data.id}`,
+            });
             router.push(`/task/${response.data.id}`)
         }catch(e){
+            toast.dismiss(tl);
+            toast.error((e as Error).message);
             console.log(e);
         }
         setLoading(false);

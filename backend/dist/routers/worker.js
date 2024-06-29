@@ -91,6 +91,16 @@ router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(vo
         amount: worker.pending_amount
     });
 }));
+router.get("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    //@ts-ignore
+    const userId = req.userId;
+    const payouts = yield prismaClient.payouts.findMany({
+        where: {
+            worker_id: Number(userId)
+        }
+    });
+    return res.json(payouts);
+}));
 router.get("/balance", middleware_1.workerMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //@ts-ignore
     const userId = req.userId;
