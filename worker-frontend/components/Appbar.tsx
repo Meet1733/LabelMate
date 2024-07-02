@@ -13,7 +13,6 @@ const WalletButton = dynamic(() => import("./WalletButton"), { ssr: false });
 export const Appbar = () => {
 
     const [loading , setLoading] = useState(false);
-
     const {publicKey, connected} = useWallet();
 
     const pubKey = useMemo(() => {
@@ -22,33 +21,8 @@ export const Appbar = () => {
         return walletAddress?.slice(0, 4) + ".." + walletAddress?.slice(-4);
     } , [publicKey]);
 
-    // async function signAndSend() {
-    //     if(!publicKey || !signMessage || !window){
-    //         return;
-    //     }
-
-    //     if (window.localStorage.getItem("token")) {
-    //         return;
-    //     }
-
-    //     const message = new TextEncoder().encode("Sign in to LabelMate as a worker")
-    //     const signature = await signMessage?.(message);
-    //     const response = await axios.post(`${BACKEND_URL}/v1/worker/signin`, {
-    //         signature,
-    //         publicKey: publicKey?.toString()
-    //     });
-
-    //     localStorage.setItem("token" , response.data.token);
-    //     setBalance(response.data.amount/ TOTAL_DECIMALS)
-    // }
-
-    // useEffect(() => {
-    //     signAndSend()
-    // }, [publicKey])
-
     return(<div className="flex justify-between border-b pb-2 pt-2">
     <div className="text-2xl pl-4 flex justify-center items-center pt-2">
-        {/* LabelMate Worker */}
         <Link href={"/"}>LabelMate Worker</Link>
     </div>
 
@@ -78,6 +52,8 @@ export const Appbar = () => {
           disabled={loading}
           onClick={async () => {
             setLoading(true);
+            let tl;
+            tl = toast.loading("Processing Payout...");
             const response = await axios.post(`${BACKEND_URL}/v1/worker/payout`,
                 {},
                 {
@@ -87,17 +63,18 @@ export const Appbar = () => {
                 }
               ).catch((err) => {
                 const data = (err as AxiosError).response?.data;
-                toast((data as {message: string}).message);
+                toast.info((data as {message: string}).message);
                 console.log(err);
               });
 
               if (response) {
-                toast.success("Your payout is processing...", {
-                  description: response.data.message,
-                });
+                toast.dismiss(tl);
+                toast.success(response.data.message);
                 console.log(response.data);
               }
+              toast.dismiss(tl);
               setLoading(false);
+
             }}
 
             className="m-2 mr-4 text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-1 focus:ring-gray-300 font-medium rounded-full text-sm px-5 py-2.5 me-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700"

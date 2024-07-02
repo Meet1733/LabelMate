@@ -36,60 +36,64 @@ prismaClient.$transaction((prisma) => __awaiter(void 0, void 0, void 0, function
 router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //@ts-ignore
     const userId = req.userId;
-    const worker = yield prismaClient.worker.findFirst({
-        where: {
-            id: Number(userId)
-        }
-    });
-    if (!worker) {
-        return res.status(403).json({
-            message: "User not found"
-        });
-    }
-    const transaction = new web3_js_1.Transaction().add(web3_js_1.SystemProgram.transfer({
-        fromPubkey: new web3_js_1.PublicKey("5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy"),
-        toPubkey: new web3_js_1.PublicKey(worker.address),
-        lamports: 1000000000 * worker.pending_amount / config_1.TOTAL_DECIMALS, //1 SOL = 1e9 Lamports
-    }));
-    const keypair = web3_js_1.Keypair.fromSecretKey((0, bs58_1.decode)(privateKey_1.privateKey));
-    let signature = "";
     try {
-        signature = yield (0, web3_js_1.sendAndConfirmTransaction)(connection, transaction, [keypair]);
-    }
-    catch (e) {
-        return res.json({
-            message: "Transaction failed"
-        });
-    }
-    //Should Add a lock here to avoid double spending
-    yield prismaClient.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
-        yield tx.worker.update({
+        const worker = yield prismaClient.worker.findUnique({
             where: {
                 id: Number(userId)
-            },
-            data: {
-                pending_amount: {
-                    decrement: worker.pending_amount
+            }
+        });
+        if (!worker) {
+            throw new Error("Worker not found");
+        }
+        if (worker.pending_amount < 2000) {
+            throw new Error("Your need to have atleast 0.03 sol as pending amount to withdraw.");
+        }
+        const transaction = new web3_js_1.Transaction().add(web3_js_1.SystemProgram.transfer({
+            fromPubkey: new web3_js_1.PublicKey("5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy"),
+            toPubkey: new web3_js_1.PublicKey(worker.address),
+            lamports: 1000000000 * worker.pending_amount / config_1.TOTAL_DECIMALS, //1 SOL = 1e9 Lamports
+        }));
+        const keypair = web3_js_1.Keypair.fromSecretKey((0, bs58_1.decode)(privateKey_1.privateKey));
+        let signature = "";
+        try {
+            signature = yield (0, web3_js_1.sendAndConfirmTransaction)(connection, transaction, [keypair]);
+        }
+        catch (e) {
+            return res.json({
+                message: "Transaction failed"
+            });
+        }
+        //Should Add a lock here to avoid double spending
+        yield prismaClient.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
+            yield tx.worker.update({
+                where: {
+                    id: Number(userId)
                 },
-                locked_amount: {
-                    increment: worker.pending_amount
+                data: {
+                    pending_amount: {
+                        decrement: worker.pending_amount
+                    },
+                    locked_amount: {
+                        increment: worker.pending_amount
+                    }
                 }
-            }
+            });
+            yield tx.payouts.create({
+                data: {
+                    worker_id: Number(userId),
+                    amount: worker.pending_amount,
+                    status: "Success",
+                    signature: signature
+                }
+            });
+        }));
+        return res.status(200).json({
+            message: `Your pending amount of ${worker.pending_amount / config_1.TOTAL_DECIMALS} SOL is locked and is getting processed.`,
         });
-        yield tx.payouts.create({
-            data: {
-                worker_id: Number(userId),
-                amount: worker.pending_amount,
-                status: "Processing",
-                signature: signature
-            }
-        });
-    }));
-    //send the txn to solana blockchain
-    res.json({
-        message: "Processing Payout",
-        amount: worker.pending_amount
-    });
+    }
+    catch (error) {
+        return res.status(500).json({ message: error.message });
+    }
 }));
 router.get("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     //@ts-ignore

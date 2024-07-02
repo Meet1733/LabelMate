@@ -23,7 +23,6 @@ export default function Page() {
         },
       })
       .then((res) => {
-        console.log(res.data[0].id);
         setPayouts(res.data);
       })
       .catch((err) => {
