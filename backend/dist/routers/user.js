@@ -190,7 +190,6 @@ router.post("/task", middleware_1.authMiddleware, (req, res) => __awaiter(void 0
     });
 }));
 //Sign in with a wallet
-//signing a messgae
 router.post('/signin', (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { publicKey, signature } = req.body;
     const message = new TextEncoder().encode("Sign in to LabelMate");

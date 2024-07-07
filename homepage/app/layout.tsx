@@ -7,7 +7,7 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "LabelMate",
-  description: "Label your data with the power of web 3.0",
+  description: "LabelMate is a decentralized web application that streamlines data labeling tasks, allowing users to earn Solana while ensuring secure and efficient task management.",
 };
 
 export default function RootLayout({
