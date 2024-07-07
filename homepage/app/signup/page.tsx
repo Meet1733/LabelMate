@@ -9,7 +9,7 @@ const data = [
     title: "Login as a User",
     des: "Effortlessly create and oversee data labeling tasks. Sign in now to start optimizing your workflow.",
     img: "/label.svg",
-    link: "https://meetharsoda-portfolio.vercel.app/",
+    link: "https://labelmate-userfrontend.vercel.app/",
     preview: "User",
   },
   {
@@ -17,7 +17,7 @@ const data = [
     title: "Login as a Worker",
     des: "Join our community and earn Solana by completing data labeling tasks. Sign in now to start your journey.",
     img: "/solana.png",
-    link: "http://localhost:3000",
+    link: "https://labelmate-workerfrontend.vercel.app/",
     preview: "Worker"
   },
 ];
