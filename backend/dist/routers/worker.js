@@ -22,7 +22,7 @@ const types_1 = require("../types");
 const tweetnacl_1 = __importDefault(require("tweetnacl"));
 const web3_js_1 = require("@solana/web3.js");
 const bs58_1 = require("bs58");
-const privateKey_1 = require("../privateKey");
+require('dotenv').config();
 const connection = new web3_js_1.Connection("https://api.devnet.solana.com");
 const TOTAL_SUBMISSION = 100;
 const router = (0, express_1.Router)();
@@ -45,15 +45,23 @@ router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(vo
         if (!worker) {
             throw new Error("Worker not found");
         }
-        if (worker.pending_amount < 2000) {
+        if (worker.pending_amount < 3000) {
             throw new Error("Your need to have atleast 0.03 sol as pending amount to withdraw.");
         }
+        const walletAddress = process.env.PAYMENT_WALLET_ADDRESS;
+        if (!walletAddress) {
+            throw new Error('PAYMENT_WALLET_ADDRESS is not defined in the environment variables.');
+        }
         const transaction = new web3_js_1.Transaction().add(web3_js_1.SystemProgram.transfer({
-            fromPubkey: new web3_js_1.PublicKey("5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy"),
+            fromPubkey: new web3_js_1.PublicKey(walletAddress),
             toPubkey: new web3_js_1.PublicKey(worker.address),
             lamports: 1000000000 * worker.pending_amount / config_1.TOTAL_DECIMALS, //1 SOL = 1e9 Lamports
         }));
-        const keypair = web3_js_1.Keypair.fromSecretKey((0, bs58_1.decode)(privateKey_1.privateKey));
+        const privateKey = process.env.PRIVATE_KEY;
+        if (!privateKey) {
+            throw new Error('PRIVATE_KEY is not defined in the environment variables.');
+        }
+        const keypair = web3_js_1.Keypair.fromSecretKey((0, bs58_1.decode)(privateKey));
         let signature = "";
         try {
             signature = yield (0, web3_js_1.sendAndConfirmTransaction)(connection, transaction, [keypair]);

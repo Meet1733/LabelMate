@@ -20,7 +20,6 @@ export const Upload = ({
     const [images, setImages] = useState<string[]>([]);
     const [title, setTitle] = useState<string | null>(null);
     const [txSignature , setTxSignature] = useState("");
-    // const {publicKey , sendTransaction} = useWallet();
     const {connection} = useConnection();
     const [loading, setLoading] = useState(false);
 
@@ -78,11 +77,16 @@ export const Upload = ({
             }
 
             tl = toast.loading("Making Payment...");
-
+            
+            const walletAddress = process.env.NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS;
+            if (!walletAddress) {
+                throw new Error('NEXT_PUBLIC_PAYMENT_WALLET_ADDRESS is not defined in the environment variables.');
+            }
+            
             const transaction = new Transaction().add(
                 SystemProgram.transfer({
                     fromPubkey: publicKey!,
-                    toPubkey: new PublicKey("5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy"),
+                    toPubkey: new PublicKey(walletAddress),
                     lamports: 100000000, //0.1 SOL
                 })
             );

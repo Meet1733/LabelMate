@@ -72,7 +72,7 @@ function Task({imageUrl, votes}: {
     votes: number;
 }) {
     return <div>
-        <img className="pt-2 w-96 rounded-md" src={imageUrl}/>
+        <img className="p-2 w-96 h-96 rounded-md" src={imageUrl}/>
         <div className="flex justify-center">
             {votes}
         </div>

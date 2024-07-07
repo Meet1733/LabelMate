@@ -244,7 +244,6 @@ router.post("/task" , authMiddleware , async (req,res) => {
 })
 
 //Sign in with a wallet
-//signing a messgae
 router.post('/signin' , async(req,res) => {
     const {publicKey , signature} = req.body;
     const message = new TextEncoder().encode("Sign in to LabelMate");

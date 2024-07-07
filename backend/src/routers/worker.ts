@@ -8,7 +8,7 @@ import { createSubmissionInput } from "../types";
 import nacl from "tweetnacl";
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, sendAndConfirmTransaction } from "@solana/web3.js";
 import { decode } from "bs58";
-import { privateKey } from "../privateKey";
+require('dotenv').config();
 
 const connection = new Connection("https://api.devnet.solana.com");
 
@@ -48,15 +48,23 @@ router.post("/payout" , workerMiddleware , async (req,res) => {
             );
         }
 
+        const walletAddress = process.env.PAYMENT_WALLET_ADDRESS;
+        if (!walletAddress) {
+            throw new Error('PAYMENT_WALLET_ADDRESS is not defined in the environment variables.');
+        }
 
         const transaction = new Transaction().add(
             SystemProgram.transfer({
-                fromPubkey: new PublicKey("5vkfyMDzi3GLxZxD5ZWvYP8hfAzsqzD2H6FVKdsy7SZy"),
+                fromPubkey: new PublicKey(walletAddress),
                 toPubkey: new PublicKey(worker.address),
                 lamports: 1000_000_000 * worker.pending_amount / TOTAL_DECIMALS, //1 SOL = 1e9 Lamports
             })
         );
-    
+        
+        const privateKey = process.env.PRIVATE_KEY;
+        if (!privateKey) {
+            throw new Error('PRIVATE_KEY is not defined in the environment variables.');
+        }
         const keypair = Keypair.fromSecretKey(decode(privateKey));
     
         let signature = "";
