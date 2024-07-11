@@ -1,6 +1,6 @@
 "use client"
 
-import { BACKEND_URL, TOTAL_DECIMALS } from '@/util';
+import {TOTAL_DECIMALS } from '@/util';
 import { useWallet } from '@solana/wallet-adapter-react';
 import axios, { AxiosError } from 'axios';
 import dynamic from 'next/dynamic';
@@ -14,6 +14,7 @@ export const Appbar = () => {
 
     const [loading , setLoading] = useState(false);
     const {publicKey, connected} = useWallet();
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_KEY;
 
     const pubKey = useMemo(() => {
         const walletAddress = publicKey?.toString();

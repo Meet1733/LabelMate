@@ -1,4 +1,3 @@
-import { BACKEND_URL } from "@/util";
 import { useWallet } from "@solana/wallet-adapter-react";
 import axios,  { AxiosError } from "axios";
 import { useEffect } from "react";
@@ -22,6 +21,7 @@ function handleAuth(
     signMessage: (message: Uint8Array) => 
         Promise<Uint8Array>
 )   {
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_KEY;
     axios.get(`${BACKEND_URL}/v1/worker/me` , {
         headers: {
             Authorization:localStorage.getItem("token"),

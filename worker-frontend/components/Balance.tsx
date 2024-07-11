@@ -1,8 +1,8 @@
-import { BACKEND_URL } from "@/util";
 import axios, {AxiosError} from "axios";
 import { toast } from "sonner";
 
 export async function ToastLTSBalance() {
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_KEY;
     await axios.get(`${BACKEND_URL}/v1/worker/me`, {
         headers: {
             Authorization: localStorage.getItem("token"),

@@ -1,5 +1,5 @@
 "use client";
-import { BACKEND_URL, TOTAL_DECIMALS } from "@/util";
+import {TOTAL_DECIMALS } from "@/util";
 import axios, { AxiosError } from "axios";
 import Link from "next/link";
 import React, { useEffect, useState } from "react";
@@ -15,6 +15,8 @@ type Payout = {
 export default function Page() {
   const [payouts, setPayouts] = useState<Payout[] | null>(null);
   const [loading, setLoading] = useState(true);
+  const BACKEND_URL = process.env.NEXT_PUBLIC_API_KEY;
+  
   useEffect(() => {
     axios
       .get(`${BACKEND_URL}/v1/worker/payout`, {

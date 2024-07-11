@@ -3,10 +3,9 @@
 import axios from "axios";
 import { useRouter } from "next/navigation";
 import { useState } from "react"
-import { BACKEND_URL } from "@/util";
 import { UploadImage } from "./UploadImage";
 import {PublicKey, SystemProgram , Transaction } from "@solana/web3.js";
-import { useConnection, useWallet } from "@solana/wallet-adapter-react";
+import { useConnection} from "@solana/wallet-adapter-react";
 import { WalletAdapterProps } from "@solana/wallet-adapter-base";
 import { toast } from "sonner";
 
@@ -22,6 +21,7 @@ export const Upload = ({
     const [txSignature , setTxSignature] = useState("");
     const {connection} = useConnection();
     const [loading, setLoading] = useState(false);
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_KEY;
 
     const router = useRouter();
 

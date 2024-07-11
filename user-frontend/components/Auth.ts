@@ -1,4 +1,3 @@
-import { BACKEND_URL } from "@/util";
 import { useWallet } from "@solana/wallet-adapter-react";
 import axios,  { AxiosError } from "axios";
 import { useEffect } from "react";
@@ -22,6 +21,7 @@ function handleAuth(
     signMessage: (message: Uint8Array) => 
         Promise<Uint8Array>
 )   {
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_KEY;
     axios.get(`${BACKEND_URL}/v1/user/me` , {
         headers: {
             Authorization:localStorage.getItem("token"),
@@ -31,7 +31,7 @@ function handleAuth(
         if(err instanceof AxiosError && err.response?.status == 403){
             const message = new TextEncoder().encode("Sign in to LabelMate")
             const signature = await signMessage?.(message);
-
+            
             const response = await axios.post(`${BACKEND_URL}/v1/user/signin`, {
                 signature: signature,
                 publicKey: publicKey?.toString()

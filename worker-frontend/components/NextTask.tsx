@@ -1,6 +1,5 @@
 "use client"
 
-import { BACKEND_URL } from "@/util";
 import axios from "axios";
 import { useEffect, useState } from "react"
 import { toast } from "sonner";
@@ -21,6 +20,7 @@ export const NextTask = () =>{
     const [currentTask , setCurrentTask] = useState<Task | null>(null);
     const [loading , setLoading] = useState(true);
     const [getTask , setGetTask] = useState(false);
+    const BACKEND_URL = process.env.NEXT_PUBLIC_API_KEY;
 
     useEffect(() => {
         axios.get(`${BACKEND_URL}/v1/worker/nextTask` , {
