@@ -42,7 +42,7 @@ router.post("/payout" , workerMiddleware , async (req,res) => {
             throw new Error("Worker not found");
         }        
 
-        if (worker.pending_amount < 3000) {
+        if (worker.pending_amount < 30000000) {
             throw new Error(
               "Your need to have atleast 0.03 sol as pending amount to withdraw."
             );

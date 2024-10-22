@@ -45,7 +45,7 @@ router.post("/payout", middleware_1.workerMiddleware, (req, res) => __awaiter(vo
         if (!worker) {
             throw new Error("Worker not found");
         }
-        if (worker.pending_amount < 3000) {
+        if (worker.pending_amount < 30000000) {
             throw new Error("Your need to have atleast 0.03 sol as pending amount to withdraw.");
         }
         const walletAddress = process.env.PAYMENT_WALLET_ADDRESS;
